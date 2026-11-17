@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Топливо Хелм</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Unbounded:wght@500;700&display=swap&subset=latin,latin-ext,cyrillic">
+<style>
+/* Layout: one calm column. Cheapest-price hero on top, fuel tabs, ranked station list with bars, tank calculator, sources. Night-blue ground, violet panels, neon pink only for "cheapest". Language switch sits beside the date. */
+:root {
+  --bg: #0a0a2a;
+  --bg-2: #101040;
+  --panel: #15154a;
+  --panel-2: #1c1c5c;
+  --line: #2d2d78;
+  --violet: #8b6cf6;
+  --violet-soft: #b9a6ff;
+  --pink: #ff3fa4;
+  --pink-soft: #ff8fcb;
+  --text: #efedff;
+  --muted: #a3a1d8;
+  --font-display: "Unbounded", "Trebuchet MS", sans-serif;
+  --font-body: "Manrope", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  background:
+    radial-gradient(900px 500px at 85% -10%, rgba(139,108,246,.28), transparent 60%),
+    radial-gradient(700px 480px at -10% 15%, rgba(255,63,164,.14), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+h1, h2 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+
+/* header */
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.brand { min-width: 0; }
+.brand h1 { font-size: clamp(26px, 5vw, 38px); letter-spacing: -0.01em; }
+.brand h1 span { color: var(--pink); text-shadow: 0 0 22px rgba(255,63,164,.55); }
+.brand p { margin: 6px 0 0; color: var(--muted); max-width: 46ch; }
+.side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.lang { display: flex; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
+.lang button {
+  background: transparent; border: 0; border-radius: 999px; padding: 6px 12px; cursor: pointer;
+  font-size: 13px; font-weight: 800; letter-spacing: .04em; color: var(--muted); transition: background .2s, color .2s;
+}
+.lang button:hover { color: var(--text); }
+.lang button[aria-pressed="true"] { background: linear-gradient(135deg, var(--violet), #6d4fe0); color: #fff; box-shadow: 0 0 16px rgba(139,108,246,.45); }
+.date { color: var(--muted); font-size: 14px; text-align: right; }
+.date b { color: var(--violet-soft); font-weight: 600; }
+
+/* notice */
+.notice {
+  background: rgba(139,108,246,.12);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 16px;
+  color: var(--violet-soft);
+  font-size: 14px;
+}
+
+/* tabs */
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.tab {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+  padding: 10px 18px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;
+  transition: background .2s, border-color .2s, box-shadow .2s;
+}
+.tab b { font-family: var(--font-display); font-size: 15px; font-weight: 500; }
+.tab small { color: var(--muted); font-size: 12px; }
+.tab:hover { border-color: var(--violet); }
+.tab[aria-selected="true"] {
+  background: linear-gradient(135deg, var(--violet), #6d4fe0);
+  border-color: transparent; box-shadow: 0 0 24px rgba(139,108,246,.45);
+}
+.tab[aria-selected="true"] small { color: #e6dfff; }
+
+/* hero */
+.hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+.best {
+  background: linear-gradient(160deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--pink);
+  border-radius: 24px; padding: 24px;
+  box-shadow: 0 0 40px rgba(255,63,164,.2), inset 0 0 40px rgba(255,63,164,.05);
+  min-width: 0;
+}
+.label { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.best .price { font-family: var(--font-display); font-size: clamp(44px, 9vw, 68px); font-weight: 700; color: var(--pink); text-shadow: 0 0 28px rgba(255,63,164,.6); line-height: 1.1; margin: 8px 0 4px; font-variant-numeric: tabular-nums; }
+.best .price small { font-size: .35em; color: var(--pink-soft); text-shadow: none; margin-left: 6px; }
+.best .who { font-weight: 800; font-size: 18px; }
+.best .addr { color: var(--muted); font-size: 14px; }
+.stats { display: grid; grid-template-rows: 1fr 1fr; gap: 16px; min-width: 0; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 16px 18px; min-width: 0; }
+.stat .v { font-family: var(--font-display); font-size: 24px; font-weight: 500; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.stat .n { color: var(--muted); font-size: 13px; }
+
+/* list */
+.section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.section-head h2 { font-size: 19px; }
+.hint { color: var(--muted); font-size: 13px; }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.row {
+  display: grid; grid-template-columns: 36px minmax(0, 1.3fr) minmax(0, 1fr) auto; align-items: center; gap: 14px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px;
+}
+.row.top1 { border-color: var(--pink); box-shadow: 0 0 22px rgba(255,63,164,.18); }
+.rank {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--bg-2); border: 1px solid var(--line); font-family: var(--font-display); font-size: 13px; color: var(--violet-soft);
+}
+.top1 .rank { background: var(--pink); border-color: var(--pink); color: #20061a; }
+.name { min-width: 0; }
+.name b { display: block; font-weight: 800; overflow-wrap: anywhere; }
+.name span { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.name b .tag { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: rgba(255,63,164,.18); color: var(--pink-soft); vertical-align: 1px; }
+.bar { height: 10px; background: var(--bg-2); border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--violet), #5d7bff); }
+.top1 .bar i { background: linear-gradient(90deg, var(--pink), var(--violet)); box-shadow: 0 0 12px rgba(255,63,164,.6); }
+.diff { color: var(--muted); font-size: 12px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.pricecell { text-align: right; min-width: 92px; }
+.price-btn {
+  background: transparent; border: 1px dashed transparent; border-radius: 10px; padding: 2px 8px; cursor: pointer;
+  font-family: var(--font-display); font-size: 18px; font-variant-numeric: tabular-nums; color: var(--text);
+}
+.price-btn:hover { border-color: var(--violet); background: var(--bg-2); }
+.top1 .price-btn { color: var(--pink-soft); }
+.edit-input {
+  width: 92px; background: var(--bg-2); border: 1px solid var(--pink); border-radius: 10px; padding: 4px 8px;
+  font-family: var(--font-display); font-size: 16px; text-align: right;
+}
+.upd { display: block; font-size: 11px; color: var(--muted); }
+.empty-note { color: var(--muted); font-size: 13px; margin: 10px 4px 0; }
+
+/* calc */
+.calc { background: var(--panel); border: 1px solid var(--line); border-radius: 24px; padding: 22px; display: grid; gap: 16px; }
+.calc h2 { font-size: 19px; }
+.calc-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.calc label { color: var(--muted); }
+.liters {
+  width: 110px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+  font-family: var(--font-display); font-size: 18px; text-align: center;
+}
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; font-size: 14px; }
+.chip:hover { border-color: var(--violet); }
+.calc-out { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.calc-out div { background: var(--bg-2); border-radius: 16px; padding: 12px 14px; min-width: 0; }
+.calc-out .v { font-family: var(--font-display); font-size: 20px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.calc-out .win .v { color: var(--pink); }
+
+/* sources */
+.sources { background: transparent; border: 1px dashed var(--line); border-radius: 20px; padding: 18px 20px; display: grid; gap: 10px; }
+.sources h2 { font-size: 16px; }
+.sources p { margin: 0; color: var(--muted); font-size: 14px; }
+.sources a { color: var(--violet-soft); }
+.sources a:hover { color: var(--pink-soft); }
+.reset { justify-self: start; background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; color: var(--muted); font-size: 13px; }
+.reset:hover { border-color: var(--pink); color: var(--text); }
+
+@media (max-width: 720px) {
+  .hero { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+  .row { grid-template-columns: 36px minmax(0, 1fr) auto; }
+  .row .barcell { grid-column: 2 / 4; grid-row: 2; }
+  .calc-out { grid-template-columns: 1fr; }
+  .side { align-items: flex-start; }
+  .date { text-align: left; }
+}
+@media (max-width: 480px) { .stats { grid-template-columns: 1fr; } }
+.feed { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.feed::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--pink); box-shadow: 0 0 10px var(--pink); margin-right: 6px; }
+.feed.off::before { background: var(--muted); box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1 data-i18n-html="brand"></h1>
+      <p data-i18n="tagline"></p>
+    </div>
+    <div class="side">
+      <div class="lang" id="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+        <button type="button" data-lang="uk" aria-pressed="false">UA</button>
+        <button type="button" data-lang="pl" aria-pressed="false">PL</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <div class="date"><span data-i18n="todayLbl"></span> <b id="today"></b><br><span data-i18n="countLbl"></span> <b id="count"></b>
+        <div class="feed" id="feed" hidden></div></div>
+    </div>
+  </header>
+
+  <div class="notice" data-i18n="notice"></div>
+
+  <div class="tabs" role="tablist" id="tabs"></div>
+
+  <section class="hero" aria-live="polite">
+    <div class="best" id="best"></div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2 data-i18n="listTitle"></h2>
+      <span class="hint" data-i18n="listHint"></span>
+    </div>
+    <ol class="list" id="list"></ol>
+    <p class="empty-note" id="missing"></p>
+  </section>
+
+  <section class="calc">
+    <h2 data-i18n="calcTitle"></h2>
+    <div class="calc-row">
+      <label for="liters" data-i18n="liters"></label>
+      <input id="liters" class="liters" type="number" min="1" max="200" step="1" value="40" inputmode="numeric">
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="calc-out" id="calcout"></div>
+  </section>
+
+  <section class="sources">
+    <h2 data-i18n="srcTitle"></h2>
+    <p data-i18n-html="srcText"></p>
+    <button class="reset" id="reset" type="button" data-i18n="reset"></button>
+  </section>
+</div>
+
+<script>
+(function () {
+  var AC = '<a href="https://www.autocentrum.pl/stacje-paliw/" target="_blank" rel="noopener">AutoCentrum</a>';
+  var EP = '<a href="https://www.e-petrol.pl/" target="_blank" rel="noopener">e-petrol.pl</a>';
+
+  var I18N = {
+    ru: {
+      locale: "ru-RU",
+      brand: 'Топливо <span>Хелм</span>',
+      tagline: "Цены на бензин, дизель и газ на заправках города. Видно, где дешевле всего сегодня.",
+      todayLbl: "Сегодня", countLbl: "Заправок в списке:",
+      notice: "Цены в списке ориентировочные, это пример для оценки. Нажмите на цену заправки и введите актуальную, расчёты обновятся. Введённое сохраняется в вашем браузере.",
+      tabsAria: "Вид топлива",
+      f_pb95: "бензин 95", f_pb98: "бензин 98", f_on: "дизель", f_lpg: "автогаз",
+      bestLabel: "Дешевле всего", unit: "zł/л", noData: "Нет данных",
+      avgLabel: "Средняя по городу", avgNote: function (n) { return "по заправкам в расчёте: " + n; },
+      spreadLabel: "Разница дорогой и дешёвой", spreadNote: "за один литр",
+      listTitle: "Заправки от дешёвой к дорогой", listHint: "Нажмите на цену, чтобы обновить",
+      rankFirst: "самая низкая цена", diffMore: function (x) { return "+" + x + " zł к самой низкой"; },
+      tagCity: "городская", updated: function (d) { return "обновлено " + d; }, example: "пример",
+      missing: function (n, m) { return "Не продают этот вид топлива или цены нет: " + n + " из " + m + " заправок."; },
+      calcTitle: "Сколько стоит заправиться", liters: "Литров", litersUnit: "л",
+      calcCheap: "На самой дешёвой", calcAvg: "В среднем по городу", calcSave: "Экономия против самой дорогой",
+      srcTitle: "Где смотреть свежие цены",
+      srcText: "Актуальные цены в Хелме публикуют " + AC + " (цены вносят пользователи, они могут отличаться от реальных) и " + EP + " (средние цены по регионам). Городскую заправку на ul. Armii Krajowej ведёт MPGK Chełm.",
+      reset: "Сбросить мои цены",
+      feedOk: function (d) { return "Данные с сервера, цены на " + d; }, feedFail: "Сервер цен недоступен, показаны последние данные",
+      editAria: function (p) { return "Изменить цену, сейчас " + p; }, newPriceAria: "Новая цена"
+    },
+    uk: {
+      locale: "uk-UA",
+      brand: 'Паливо <span>Хелм</span>',
+      tagline: "Ціни на бензин, дизель і газ на заправках міста. Одразу видно, де сьогодні найдешевше.",
+      todayLbl: "Сьогодні", countLbl: "Заправок у списку:",
+      notice: "Ціни у списку орієнтовні, це приклад для оцінки. Натисніть на ціну заправки й введіть актуальну, розрахунки оновляться. Введене зберігається у вашому браузері.",
+      tabsAria: "Вид пального",
+      f_pb95: "бензин 95", f_pb98: "бензин 98", f_on: "дизель", f_lpg: "автогаз",
+      bestLabel: "Найдешевше", unit: "zł/л", noData: "Немає даних",
+      avgLabel: "Середня по місту", avgNote: function (n) { return "за заправками в розрахунку: " + n; },
+      spreadLabel: "Різниця між дорогою й дешевою", spreadNote: "за один літр",
+      listTitle: "Заправки від дешевої до дорогої", listHint: "Натисніть на ціну, щоб оновити",
+      rankFirst: "найнижча ціна", diffMore: function (x) { return "+" + x + " zł до найнижчої"; },
+      tagCity: "міська", updated: function (d) { return "оновлено " + d; }, example: "приклад",
+      missing: function (n, m) { return "Не продають цей вид пального або ціни немає: " + n + " із " + m + " заправок."; },
+      calcTitle: "Скільки коштує заправитися", liters: "Літрів", litersUnit: "л",
+      calcCheap: "На найдешевшій", calcAvg: "У середньому по місту", calcSave: "Економія проти найдорожчої",
+      srcTitle: "Де дивитися свіжі ціни",
+      srcText: "Актуальні ціни в Хелмі публікують " + AC + " (ціни вносять користувачі, вони можуть відрізнятися від реальних) і " + EP + " (середні ціни по регіонах). Міську заправку на ul. Armii Krajowej веде MPGK Chełm.",
+      reset: "Скинути мої ціни",
+      feedOk: function (d) { return "Дані із сервера, ціни на " + d; }, feedFail: "Сервер цін недоступний, показано останні дані",
+      editAria: function (p) { return "Змінити ціну, зараз " + p; }, newPriceAria: "Нова ціна"
+    },
+    pl: {
+      locale: "pl-PL",
+      brand: 'Paliwa <span>Chełm</span>',
+      tagline: "Ceny benzyny, diesla i gazu na stacjach w mieście. Od razu widać, gdzie dziś jest najtaniej.",
+      todayLbl: "Dziś", countLbl: "Stacji na liście:",
+      notice: "Ceny na liście są orientacyjne i służą jako przykład. Kliknij cenę stacji i wpisz aktualną, a obliczenia się odświeżą. To, co wpiszesz, zapisuje się w Twojej przeglądarce.",
+      tabsAria: "Rodzaj paliwa",
+      f_pb95: "benzyna 95", f_pb98: "benzyna 98", f_on: "diesel", f_lpg: "autogaz",
+      bestLabel: "Najtaniej", unit: "zł/l", noData: "Brak danych",
+      avgLabel: "Średnia w mieście", avgNote: function (n) { return "liczona ze stacji: " + n; },
+      spreadLabel: "Różnica najdroższej i najtańszej", spreadNote: "na jednym litrze",
+      listTitle: "Stacje od najtańszej do najdroższej", listHint: "Kliknij cenę, aby ją zaktualizować",
+      rankFirst: "najniższa cena", diffMore: function (x) { return "+" + x + " zł do najniższej"; },
+      tagCity: "miejska", updated: function (d) { return "zaktualizowano " + d; }, example: "przykład",
+      missing: function (n, m) { return "Nie sprzedają tego paliwa lub brak ceny: " + n + " z " + m + " stacji."; },
+      calcTitle: "Ile kosztuje tankowanie", liters: "Litry", litersUnit: "l",
+      calcCheap: "Na najtańszej", calcAvg: "Średnio w mieście", calcSave: "Oszczędność względem najdroższej",
+      srcTitle: "Gdzie szukać aktualnych cen",
+      srcText: "Aktualne ceny w Chełmie publikują " + AC + " (ceny wprowadzają użytkownicy, mogą odbiegać od rzeczywistych) oraz " + EP + " (średnie ceny w regionach). Miejską stację przy ul. Armii Krajowej prowadzi MPGK Chełm.",
+      reset: "Wyczyść moje ceny",
+      feedOk: function (d) { return "Dane z serwera, ceny z " + d; }, feedFail: "Serwer cen niedostępny, pokazano ostatnie dane",
+      editAria: function (p) { return "Zmień cenę, obecnie " + p; }, newPriceAria: "Nowa cena"
+    },
+    en: {
+      locale: "en-GB",
+      brand: 'Fuel <span>Chełm</span>',
+      tagline: "Petrol, diesel and LPG prices at the city's filling stations. See at a glance where it's cheapest today.",
+      todayLbl: "Today", countLbl: "Stations listed:",
+      notice: "Prices in the list are approximate and serve as an example. Click a station's price and enter the current one, and the numbers update. What you enter is saved in your browser.",
+      tabsAria: "Fuel type",
+      f_pb95: "petrol 95", f_pb98: "petrol 98", f_on: "diesel", f_lpg: "LPG",
+      bestLabel: "Cheapest", unit: "zł/L", noData: "No data",
+      avgLabel: "City average", avgNote: function (n) { return "based on stations: " + n; },
+      spreadLabel: "Gap between priciest and cheapest", spreadNote: "per litre",
+      listTitle: "Stations from cheapest to priciest", listHint: "Click a price to update it",
+      rankFirst: "lowest price", diffMore: function (x) { return "+" + x + " zł vs. the lowest"; },
+      tagCity: "municipal", updated: function (d) { return "updated " + d; }, example: "example",
+      missing: function (n, m) { return "Fuel not sold or no price: " + n + " of " + m + " stations."; },
+      calcTitle: "What a fill-up costs", liters: "Litres", litersUnit: "L",
+      calcCheap: "At the cheapest", calcAvg: "City average", calcSave: "Saving vs. the priciest",
+      srcTitle: "Where to find fresh prices",
+      srcText: "Current prices in Chełm are published by " + AC + " (prices are entered by users and may differ from real ones) and " + EP + " (regional averages). The municipal station on ul. Armii Krajowej is run by MPGK Chełm.",
+      reset: "Reset my prices",
+      feedOk: function (d) { return "Data from the server, prices as of " + d; }, feedFail: "Price server unreachable, showing the last data",
+      editAria: function (p) { return "Change price, currently " + p; }, newPriceAria: "New price"
+    }
+  };
+
+  var FUELS = [
+    { id: "pb95", label: "Pb 95" },
+    { id: "pb98", label: "Pb 98" },
+    { id: "on", label: "ON" },
+    { id: "lpg", label: "LPG" }
+  ];
+  // Примерные цены, zł за литр. Адреса заправок Хелма из открытых каталогов.
+  var STATIONS = [
+    { id: "mpgk", name: "Miejska Stacja Paliw", addr: "Armii Krajowej", city: true, p: { pb95: 5.79, pb98: 6.19, on: 5.85 } },
+    { id: "orlen-ak", name: "Orlen", addr: "Aleja Armii Krajowej 5", p: { pb95: 5.99, pb98: 6.49, on: 6.05 } },
+    { id: "orlen-sm", name: "Orlen Strupin Mały", addr: "Chełmska", p: { pb95: 5.95, pb98: 6.45, on: 6.01 } },
+    { id: "bp", name: "BP", addr: "Kolejowa 38", p: { pb95: 6.04, pb98: 6.52, on: 6.12, lpg: 3.09 } },
+    { id: "lotos-ap", name: "Lotos", addr: "Aleja Przyjaźni 5", p: { pb95: 5.98, pb98: 6.42, on: 6.04, lpg: 3.05 } },
+    { id: "shell", name: "Shell", addr: "Henryka Jordana 25", p: { pb95: 6.07, pb98: 6.59, on: 6.14 } },
+    { id: "circlek", name: "Circle K", addr: "Droga Męczenników 2", p: { pb95: 6.02, pb98: 6.48, on: 6.08 } },
+    { id: "optima", name: "Lotos Optima", addr: "Lwowska 105", p: { pb95: 5.92, on: 5.98 } },
+    { id: "moya", name: "Moya", addr: "Włodawska 5", p: { pb95: 5.93, pb98: 6.36, on: 5.99 } },
+    { id: "exo", name: "EXO", addr: "Okszowska 27", p: { pb95: 5.89, on: 5.94 } },
+    { id: "wm-wol", name: "Stacja własna marka", addr: "Wołyńska 53", p: { pb95: 5.87, on: 5.93 } },
+    { id: "lotos-pod", name: "Lotos", addr: "Podgórze 36b", p: { pb95: 5.96, pb98: 6.40, on: 6.03 } },
+    { id: "lpg-hr", name: "Stacja LPG", addr: "Hrubieszowska 102", p: { lpg: 2.99 } },
+    { id: "lpg-lw", name: "Stacja LPG", addr: "Lwowska 24", p: { lpg: 3.02 } },
+    { id: "lpg-3m", name: "Stacja prywatna", addr: "Aleja 3 Maja 18", p: { lpg: 2.99 } },
+    { id: "lpg-ok", name: "Stacja własna marka", addr: "Okszowska 46 A", p: { lpg: 3.05 } }
+  ];
+  var KEY = "fuel-chelm-v1", LKEY = "fuel-chelm-lang";
+  var state = { fuel: "pb95", liters: 40, editing: null, mine: {}, lang: "ru", feed: null, feedFail: false };
+
+  try { var raw = localStorage.getItem(KEY); if (raw) state.mine = JSON.parse(raw) || {}; } catch (e) { state.mine = {}; }
+  try { var sl = localStorage.getItem(LKEY); if (sl && I18N[sl]) state.lang = sl; } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state.mine)); } catch (e) {} }
+
+  function $(id) { return document.getElementById(id); }
+  function t(key) {
+    var v = I18N[state.lang][key];
+    if (typeof v === "function") return v.apply(null, Array.prototype.slice.call(arguments, 1));
+    return v;
+  }
+  function fmt(n) { var s = n.toFixed(2); return state.lang === "en" ? s : s.replace(".", ","); }
+  function fmtDay(iso) { return new Date(iso).toLocaleDateString(t("locale"), { day: "numeric", month: "short" }); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  function priceOf(st, fuel) {
+    var m = state.mine[st.id] && state.mine[st.id][fuel];
+    if (m) return { v: m.p, t: m.t };
+    var f = state.feed && state.feed.prices && state.feed.prices[st.id] && state.feed.prices[st.id][fuel];
+    if (f && f.p > 0) return { v: f.p, t: f.t || state.feed.updated };
+    if (st.p[fuel] != null) return { v: st.p[fuel], t: null };
+    return null;
+  }
+
+  function rowsFor(fuel) {
+    var out = [];
+    STATIONS.forEach(function (st) {
+      var p = priceOf(st, fuel);
+      if (p) out.push({ st: st, v: p.v, t: p.t });
+    });
+    out.sort(function (a, b) { return a.v - b.v; });
+    return out;
+  }
+
+  function renderTabs() {
+    $("tabs").setAttribute("aria-label", t("tabsAria"));
+    $("tabs").innerHTML = FUELS.map(function (f) {
+      return '<button class="tab" role="tab" type="button" data-fuel="' + f.id + '" aria-selected="' + (f.id === state.fuel) + '"><b>' + f.label + "</b><small>" + t("f_" + f.id) + "</small></button>";
+    }).join("");
+  }
+
+  function renderHero(rows) {
+    var fuel = FUELS.filter(function (f) { return f.id === state.fuel; })[0];
+    if (!rows.length) { $("best").innerHTML = "<div class='label'>" + t("noData") + "</div>"; $("stats").innerHTML = ""; return; }
+    var min = rows[0], max = rows[rows.length - 1];
+    var avg = rows.reduce(function (s, r) { return s + r.v; }, 0) / rows.length;
+    $("best").innerHTML =
+      '<div class="label">' + t("bestLabel") + ' · ' + fuel.label + '</div>' +
+      '<div class="price">' + fmt(min.v) + '<small>' + t("unit") + '</small></div>' +
+      '<div class="who">' + esc(min.st.name) + '</div>' +
+      '<div class="addr">' + esc(min.st.addr) + ', Chełm</div>';
+    $("stats").innerHTML =
+      '<div class="stat"><div class="label">' + t("avgLabel") + '</div><div class="v">' + fmt(avg) + ' zł</div><div class="n">' + t("avgNote", rows.length) + '</div></div>' +
+      '<div class="stat"><div class="label">' + t("spreadLabel") + '</div><div class="v">' + fmt(max.v - min.v) + ' zł</div><div class="n">' + t("spreadNote") + '</div></div>';
+  }
+
+  function renderList(rows) {
+    var el = $("list");
+    if (!rows.length) { el.innerHTML = ""; return; }
+    var min = rows[0].v, max = rows[rows.length - 1].v, span = max - min;
+    el.innerHTML = rows.map(function (r, i) {
+      var key = r.st.id;
+      var pct = 38 + 62 * (span > 0 ? (r.v - min) / span : 0);
+      var diff = i === 0 ? t("rankFirst") : t("diffMore", fmt(r.v - min));
+      var tag = r.st.city ? '<span class="tag">' + t("tagCity") + '</span>' : "";
+      var cell;
+      if (state.editing === key) {
+        cell = '<input class="edit-input" id="edit-' + key + '" type="number" step="0.01" min="0.5" max="20" inputmode="decimal" value="' + r.v.toFixed(2) + '" aria-label="' + esc(t("newPriceAria")) + '">';
+      } else {
+        cell = '<button class="price-btn" type="button" data-edit="' + key + '" aria-label="' + esc(t("editAria", fmt(r.v))) + '">' + fmt(r.v) + '</button>';
+      }
+      var upd = r.t ? t("updated", fmtDay(r.t)) : t("example");
+      return '<li class="row' + (i === 0 ? " top1" : "") + '">' +
+        '<div class="rank">' + (i + 1) + '</div>' +
+        '<div class="name"><b>' + esc(r.st.name) + tag + '</b><span>' + esc(r.st.addr) + '</span></div>' +
+        '<div class="barcell"><div class="bar"><i style="width:' + pct.toFixed(1) + '%"></i></div><div class="diff">' + diff + '</div></div>' +
+        '<div class="pricecell">' + cell + '<span class="upd">' + upd + '</span></div>' +
+        '</li>';
+    }).join("");
+    if (state.editing) {
+      var inp = $("edit-" + state.editing);
+      if (inp) { inp.focus(); inp.select(); }
+    }
+  }
+
+  function renderMissing(rows) {
+    var n = STATIONS.length - rows.length;
+    $("missing").textContent = n > 0 ? t("missing", n, STATIONS.length) : "";
+  }
+
+  function renderCalc(rows) {
+    var L = state.liters;
+    if (!rows.length || !(L > 0)) { $("calcout").innerHTML = ""; return; }
+    var min = rows[0].v, max = rows[rows.length - 1].v;
+    var avg = rows.reduce(function (s, r) { return s + r.v; }, 0) / rows.length;
+    $("calcout").innerHTML =
+      '<div class="win"><div class="label">' + t("calcCheap") + '</div><div class="v">' + fmt(min * L) + ' zł</div></div>' +
+      '<div><div class="label">' + t("calcAvg") + '</div><div class="v">' + fmt(avg * L) + ' zł</div></div>' +
+      '<div><div class="label">' + t("calcSave") + '</div><div class="v">' + fmt((max - min) * L) + ' zł</div></div>';
+  }
+
+  function renderChips() {
+    $("chips").innerHTML = [20, 30, 40, 50, 60].map(function (n) {
+      return '<button class="chip" type="button" data-l="' + n + '">' + n + " " + t("litersUnit") + "</button>";
+    }).join("");
+  }
+
+  function renderStatic() {
+    document.documentElement.lang = state.lang;
+    var i, nodes = document.querySelectorAll("[data-i18n]");
+    for (i = 0; i < nodes.length; i++) nodes[i].textContent = t(nodes[i].getAttribute("data-i18n"));
+    nodes = document.querySelectorAll("[data-i18n-html]");
+    for (i = 0; i < nodes.length; i++) nodes[i].innerHTML = t(nodes[i].getAttribute("data-i18n-html"));
+    var btns = document.querySelectorAll("#lang [data-lang]");
+    for (i = 0; i < btns.length; i++) btns[i].setAttribute("aria-pressed", String(btns[i].getAttribute("data-lang") === state.lang));
+    $("today").textContent = new Date().toLocaleDateString(t("locale"), { day: "numeric", month: "long", year: "numeric" });
+    $("count").textContent = STATIONS.length;
+    renderChips();
+  }
+
+  function renderFeed() {
+    var el = $("feed");
+    if (state.feedFail) { el.hidden = false; el.className = "feed off"; el.textContent = t("feedFail"); return; }
+    if (state.feed && state.feed.updated) {
+      var d = new Date(state.feed.updated);
+      el.hidden = false; el.className = "feed";
+      el.textContent = t("feedOk", d.toLocaleString(t("locale"), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }));
+    } else { el.hidden = true; }
+  }
+
+  function render() {
+    var rows = rowsFor(state.fuel);
+    renderTabs(); renderHero(rows); renderList(rows); renderMissing(rows); renderCalc(rows); renderFeed();
+  }
+
+  // Читаем prices.json каждые 20 секунд. Сборщик обновляет файл реже, страница только подхватывает изменения.
+  function loadFeed() {
+    if (document.hidden) return;
+    fetch("prices.json?_=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+      .then(function (j) {
+        var changed = !state.feed || state.feed.updated !== j.updated;
+        state.feed = j; state.feedFail = false;
+        if (changed && !state.editing) render(); else renderFeed();
+      })
+      .catch(function () { state.feedFail = true; renderFeed(); });
+  }
+
+  function commit(key) {
+    var inp = $("edit-" + key);
+    var val = inp ? parseFloat(String(inp.value).replace(",", ".")) : NaN;
+    state.editing = null;
+    if (val >= 0.5 && val <= 20) {
+      state.mine[key] = state.mine[key] || {};
+      state.mine[key][state.fuel] = { p: Math.round(val * 100) / 100, t: new Date().toISOString() };
+      save();
+    }
+    render();
+  }
+
+  $("lang").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-lang]");
+    if (!b) return;
+    state.lang = b.getAttribute("data-lang");
+    try { localStorage.setItem(LKEY, state.lang); } catch (err) {}
+    renderStatic(); render();
+  });
+  $("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-fuel]");
+    if (!b) return;
+    state.fuel = b.getAttribute("data-fuel"); state.editing = null; render();
+  });
+  $("list").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-edit]");
+    if (!b) return;
+    state.editing = b.getAttribute("data-edit"); render();
+  });
+  $("list").addEventListener("keydown", function (e) {
+    if (!state.editing || e.target.id !== "edit-" + state.editing) return;
+    if (e.key === "Enter") { commit(state.editing); }
+    if (e.key === "Escape") { state.editing = null; render(); }
+  });
+  $("list").addEventListener("focusout", function (e) {
+    if (state.editing && e.target.id === "edit-" + state.editing) {
+      var k = state.editing; setTimeout(function () { if (state.editing === k) commit(k); }, 0);
+    }
+  });
+  $("liters").addEventListener("input", function (e) {
+    var v = parseFloat(e.target.value); state.liters = v > 0 ? Math.min(v, 200) : 0; renderCalc(rowsFor(state.fuel));
+  });
+  $("chips").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-l]"); if (!b) return;
+    state.liters = parseInt(b.getAttribute("data-l"), 10); $("liters").value = state.liters; renderCalc(rowsFor(state.fuel));
+  });
+  $("reset").addEventListener("click", function () { state.mine = {}; state.editing = null; save(); render(); });
+
+  renderStatic();
+  render();
+  loadFeed();
+  setInterval(loadFeed, 20000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) loadFeed(); });
+})();
+</script>
+</body>
+</html>
